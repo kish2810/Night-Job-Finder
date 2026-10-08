@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Job Assignment Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .touch-action-manipulation { touch-action: manipulation; }
+    </style>
+</head>
+<body class="h-full bg-slate-100 text-slate-800 flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+            <!-- Brand -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-inner">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base tracking-tight leading-none text-white">Daily Job Finder</h1>
+                    <p class="text-[11px] text-slate-400 font-medium">Workforce Assignment Portal</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher -->
+            <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700/80">
+                <button id="mode-worker-btn" onclick="setMode('worker')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow">
+                    <i data-lucide="user" class="w-3.5 h-3.5 inline mr-1"></i> Worker
+                </button>
+                <button id="mode-manager-btn" onclick="setMode('manager')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                    <i data-lucide="settings" class="w-3.5 h-3.5 inline mr-1"></i> Manager
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-white border-b border-slate-200 shadow-sm sticky top-[60px] z-20">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Date Picker -->
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
+                <input type="date" id="selected-date" onchange="handleDateChange(this.value)" class="bg-slate-100 border border-slate-300 font-bold text-slate-800 text-sm rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="setTodayDate()" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200">Today</button>
+            </div>
+
+            <!-- Stats & Share -->
+            <div class="flex items-center gap-2">
+                <span id="shift-count-badge" class="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg">
+                    0 Assignments
+                </span>
+                <button onclick="sharePortalLink()" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all">
+                    <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share Rota
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-5 space-y-6">
+
+        <section id="view-worker" class="space-y-4">
+            <!-- Search Card -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200">
+                <label for="worker-search-input" class="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                    Find Your Job Assignment Today
+                </label>
+                <div class="relative">
+                    <i data-lucide="search" class="w-6 h-6 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="worker-search-input" oninput="filterWorkerJobs(this.value)" placeholder="Type your Name, ID, or Role (e.g. John, 102, Driver)..." autofocus class="w-full pl-12 pr-10 py-3.5 bg-slate-50 border-2 border-slate-200 focus:border-blue-600 focus:bg-white text-slate-900 rounded-xl text-base sm:text-lg font-bold placeholder:text-slate-400 focus:outline-none transition-all shadow-inner">
+                    <button id="clear-search-btn" onclick="clearWorkerSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 font-medium">⚡ Tip: Type your ID number or surname for instant lookup among 100+ staff members.</p>
+            </div>
+
+            <!-- Job Cards Results Header -->
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500" id="results-count-label">Showing All Staff (15)</h2>
+                <button onclick="toggleViewStyle()" id="toggle-layout-btn" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Compact List
+                </button>
+            </div>
+
+            <!-- Assignments Container -->
+            <div id="worker-job-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <!-- JS populated job cards -->
+            </div>
+        </section>
+
+
+        <section id="view-manager" class="space-y-6 hidden">
+            <!-- Manager Control Panel Tabs -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                    <div>
+                        <h2 class="text-base font-extrabold text-slate-900">Manager Daily Rota Tools</h2>
+                        <p class="text-xs text-slate-500 font-medium">Add individual entries or bulk upload staff lists from Excel / WhatsApp</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="clearAllTodayAssignments()" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-lg">
+                            Clear Day
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button id="tab-btn-single" onclick="setManagerInputTab('single')" class="py-2 text-xs font-bold rounded-lg border bg-blue-600 text-white border-blue-600 shadow-sm">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5 inline mr-1"></i> Quick Add Single
+                    </button>
+                    <button id="tab-btn-bulk" onclick="setManagerInputTab('bulk')" class="py-2 text-xs font-bold rounded-lg border bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 inline mr-1"></i> Bulk Copy / Paste
+                    </button>
+                </div>
+
+                <!-- FORM 1: Single Quick Add -->
+                <form id="single-add-form" onsubmit="handleSingleAdd(event)" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Worker Name / ID *</label>
+                            <input type="text" id="input-name" required placeholder="e.g. John Smith (#105)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold focus:bg-white focus:border-blue-600 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Assigned Job / Role *</label>
+                            <input type="text" id="input-job" required placeholder="e.g. Forklift Driver / Line 2 Operative" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold focus:bg-white focus:border-blue-600 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Location / Station</label>
+                            <input type="text" id="input-location" placeholder="e.g. Bay 4 / North Hub" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:border-blue-600 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Shift Hours</label>
+                            <input type="text" id="input-time" placeholder="e.g. 07:00 - 15:30" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:border-blue-600 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Supervisor Phone</label>
+                            <input type="text" id="input-supervisor" placeholder="e.g. Dave (+44 7700...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:border-blue-600 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Special Notes / Equipment Required</label>
+                        <input type="text" id="input-notes" placeholder="e.g. Wear high-vis jacket, report to Gate B" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:bg-white focus:border-blue-600 focus:outline-none">
+                    </div>
+
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Assignment
+                        </button>
+                    </div>
+                </form>
+
+                <!-- FORM 2: Bulk Import (Hidden by default) -->
+                <div id="bulk-add-container" class="space-y-3 hidden">
+                    <p class="text-xs text-slate-600 font-medium">Copy & paste directly from Excel, CSV, or Text. Separate columns with commas or tabs.</p>
+                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-500 font-mono">
+                        Format: <span class="font-bold text-slate-700">Name, Job, Location, Shift Time, Notes</span><br>
+                        Example: John Doe, Forklift Driver, Warehouse A, 08:00-16:00, High Vis Required
+                    </div>
+                    <textarea id="bulk-text-area" rows="6" placeholder="Paste data here line by line..." class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:border-blue-600 focus:outline-none"></textarea>
+                    
+                    <div class="flex items-center justify-between pt-1">
+                        <button onclick="loadSample100Data()" class="text-xs font-bold text-blue-600 hover:underline">
+                            ⚡ Pre-fill 10 Sample Rows
+                        </button>
+                        <button onclick="handleBulkImport()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Process & Import All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manager Full Assignment Management Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+                    <h3 class="font-extrabold text-sm flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-blue-400"></i> Active Assignments Table
+                    </h3>
+                    <span id="manager-table-count" class="text-xs font-bold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">0 total</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                                <th class="p-3">Worker Name / ID</th>
+                                <th class="p-3">Assigned Role</th>
+                                <th class="p-3">Station</th>
+                                <th class="p-3">Shift Hours</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manager-table-body" class="divide-y divide-slate-200 text-xs font-medium">
+                            <!-- JS populated rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-80 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+        <span id="toast-message" class="text-xs font-bold">Action completed successfully</span>
+    </div>
+
+    <script>
+        /* TODAY DATE GENERATOR */
+        const TODAY_ISO = new Date().toISOString().split('T')[0];
+
+        /* SEED SAMPLE WORKFORCE DATA (~15 DEFAULT WORKERS) */
+        const DEFAULT_ASSIGNMENTS = [
+            { id: '1', date: TODAY_ISO, name: 'John Smith (#101)', job: 'Forklift Operator', location: 'Warehouse A - Bay 3', time: '07:00 - 15:30', notes: 'Safety boots & hard hat required', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '2', date: TODAY_ISO, name: 'Sarah Connor (#102)', job: 'Assembly Line Lead', location: 'Station B2', time: '07:00 - 15:30', notes: 'Check morning quota setup', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '3', date: TODAY_ISO, name: 'Michael Brown (#103)', job: 'Delivery Driver', location: 'Loading Dock 1', time: '06:00 - 14:30', notes: 'Keys at main security desk', supervisor: 'Alan (+44 7700 900222)' },
+            { id: '4', date: TODAY_ISO, name: 'Elena Rostova (#104)', job: 'Quality Inspector', location: 'Testing Lab 1', time: '08:00 - 16:30', notes: 'Batch 4 inspection target', supervisor: 'Sarah (+44 7700 900333)' },
+            { id: '5', date: TODAY_ISO, name: 'David Miller (#105)', job: 'Maintenance Tech', location: 'Facility Wide', time: '08:00 - 16:30', notes: 'Scheduled HVAC check at 10am', supervisor: 'Alan (+44 7700 900222)' },
+            { id: '6', date: TODAY_ISO, name: 'Amara Patel (#106)', job: 'Packing Specialist', location: 'Packing Zone C', time: '07:00 - 15:30', notes: 'High-volume orders today', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '7', date: TODAY_ISO, name: 'James Wilson (#107)', job: 'Security Officer', location: 'Main Gate & Perimeter', time: '06:00 - 18:00', notes: 'Visitor logging duty', supervisor: 'Head Security' },
+            { id: '8', date: TODAY_ISO, name: 'Robert Taylor (#108)', job: 'Inventory Clerk', location: 'Aisle 12 Stockroom', time: '09:00 - 17:30', notes: 'Cycle counting audit', supervisor: 'Sarah (+44 7700 900333)' },
+            { id: '9', date: TODAY_ISO, name: 'Lisa Anderson (#109)', job: 'Pallet Jack Operator', location: 'Warehouse B', time: '07:00 - 15:30', notes: 'Clear central aisle', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '10', date: TODAY_ISO, name: 'Carlos Gomez (#110)', job: 'Sanitation Lead', location: 'Plant Sector 1', time: '14:00 - 22:30', notes: 'Evening deep clean', supervisor: 'Alan (+44 7700 900222)' },
+            { id: '11', date: TODAY_ISO, name: 'Hannah White (#111)', job: 'Labeling Assistant', location: 'Dispatch Hub', time: '08:00 - 16:30', notes: 'Export goods labeling', supervisor: 'Sarah (+44 7700 900333)' },
+            { id: '12', date: TODAY_ISO, name: 'Marcus Vance (#112)', job: 'Yard Controller', location: 'External Lot 2', time: '07:00 - 15:30', notes: 'Direct incoming HGV lorries', supervisor: 'Alan (+44 7700 900222)' },
+            { id: '13', date: TODAY_ISO, name: 'Chloe Bennett (#113)', job: 'Order Picker', location: 'Zone A High Density', time: '07:00 - 15:30', notes: 'Priority client orders', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '14', date: TODAY_ISO, name: 'Tom Harrison (#114)', job: 'Machine Operator', location: 'Press Bay 3', time: '06:00 - 14:00', notes: 'Ear protection mandatory', supervisor: 'Dave (+44 7700 900111)' },
+            { id: '15', date: TODAY_ISO, name: 'Rachel Green (#115)', job: 'Site Coordinator', location: 'Front Admin Desk', time: '08:00 - 17:00', notes: 'Shift clock-ins tracking', supervisor: 'HR Direct' }
+        ];
+
+        /* PORTAL STATE */
+        let state = {
+            mode: 'worker', // 'worker' or 'manager'
+            selectedDate: TODAY_ISO,
+            assignments: JSON.parse(localStorage.getItem('portal_assignments')) || DEFAULT_ASSIGNMENTS,
+            isCompactView: false,
+            searchQuery: ''
+        };
+
+        /* INITIALIZATION */
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('selected-date').value = state.selectedDate;
+            lucide.createIcons();
+            render();
+            
+            // Check for direct share link query params (e.g. ?search=John)
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('search');
+            if (searchParam) {
+                const searchInput = document.getElementById('worker-search-input');
+                searchInput.value = searchParam;
+                filterWorkerJobs(searchParam);
+            }
+        });
+
+        function saveData() {
+            localStorage.setItem('portal_assignments', JSON.stringify(state.assignments));
+        }
+
+        /* MODE & DATE NAVIGATION */
+        function setMode(mode) {
+            state.mode = mode;
+            const workerBtn = document.getElementById('mode-worker-btn');
+            const managerBtn = document.getElementById('mode-manager-btn');
+            const workerSection = document.getElementById('view-worker');
+            const managerSection = document.getElementById('view-manager');
+
+            if (mode === 'worker') {
+                workerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow";
+                managerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+                workerSection.classList.remove('hidden');
+                managerSection.classList.add('hidden');
+            } else {
+                managerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow";
+                workerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+                managerSection.classList.remove('hidden');
+                workerSection.classList.add('hidden');
+            }
+            render();
+        }
+
+        function handleDateChange(newDate) {
+            state.selectedDate = newDate;
+            render();
+        }
+
+        function setTodayDate() {
+            state.selectedDate = TODAY_ISO;
+            document.getElementById('selected-date').value = TODAY_ISO;
+            render();
+        }
+
+        /* WORKER FILTER & SEARCH */
+        function filterWorkerJobs(query) {
+            state.searchQuery = query.toLowerCase().trim();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (state.searchQuery.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            renderWorkerJobs();
+        }
+
+        function clearWorkerSearch() {
+            document.getElementById('worker-search-input').value = '';
+            filterWorkerJobs('');
+        }
+
+        function toggleViewStyle() {
+            state.isCompactView = !state.isCompactView;
+            const btn = document.getElementById('toggle-layout-btn');
+            btn.innerHTML = state.isCompactView 
+                ? `<i data-lucide="layout-list" class="w-3.5 h-3.5"></i> Detailed Cards`
+                : `<i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Compact List`;
+            renderWorkerJobs();
+            lucide.createIcons();
+        }
+
+        /* MAIN RENDER FUNCTION */
+        function render() {
+            // Filter by date
+            const currentDayAssignments = state.assignments.filter(a => a.date === state.selectedDate);
+            document.getElementById('shift-count-badge').textContent = `${currentDayAssignments.length} Assignments`;
+            
+            if (state.mode === 'worker') {
+                renderWorkerJobs();
+            } else {
+                renderManagerTable();
+            }
+            lucide.createIcons();
+        }
+
+        function renderWorkerJobs() {
+            const container = document.getElementById('worker-job-list');
+            const dayAssignments = state.assignments.filter(a => a.date === state.selectedDate);
+            
+            let filtered = dayAssignments;
+            if (state.searchQuery) {
+                filtered = dayAssignments.filter(a => 
+                    a.name.toLowerCase().includes(state.searchQuery) ||
+                    a.job.toLowerCase().includes(state.searchQuery) ||
+                    a.location.toLowerCase().includes(state.searchQuery)
+                );
+            }
+
+            document.getElementById('results-count-label').textContent = 
+                `Showing ${filtered.length} of ${dayAssignments.length} Assignments`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-slate-200">
+                        <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                            <i data-lucide="user-x" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">No Assignment Found</h3>
+                        <p class="text-xs text-slate-500 mt-1">Try clearing your search or check if the manager selected the correct date above.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                if (state.isCompactView) {
+                    return `
+                        <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between gap-3 hover:border-blue-300 transition-all">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="font-extrabold text-slate-900 text-xs sm:text-sm truncate">${item.name}</h3>
+                                <p class="text-xs font-bold text-blue-600 truncate">${item.job}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 block">${item.location || 'Site'}</span>
+                                <span class="text-[10px] font-medium text-slate-500 mt-0.5 block">${item.time || 'All Day'}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="bg-white rounded-2xl p-4 sm:p-5 border-2 border-slate-200 shadow-sm hover:border-blue-500 transition-all flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">${item.name}</h3>
+                                    <div class="inline-block px-2.5 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-xs rounded-md border border-blue-200 mt-1">
+                                        ${item.job}
+                                    </div>
+                                </div>
+                                <span class="bg-slate-900 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shrink-0">
+                                    ${item.time || 'Standard Shift'}
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-xs">
+                                <div class="flex items-center gap-2 text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                    <i data-lucide="map-pin" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                    <span class="font-bold truncate">${item.location || 'Main Site'}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                    <i data-lucide="phone" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                    <span class="font-bold truncate">${item.supervisor || 'Manager On Duty'}</span>
+                                </div>
+                            </div>
+
+                            ${item.notes ? `
+                                <div class="mt-2.5 text-xs bg-amber-50 border border-amber-200/80 text-amber-900 p-2.5 rounded-lg font-medium flex items-start gap-2">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                                    <span>${item.notes}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderManagerTable() {
+            const body = document.getElementById('manager-table-body');
+            const dayAssignments = state.assignments.filter(a => a.date === state.selectedDate);
+            document.getElementById('manager-table-count').textContent = `${dayAssignments.length} Assignments`;
+
+            if (dayAssignments.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
+                            No assignments added for this date yet. Use the quick add or bulk paste form above.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            body.innerHTML = dayAssignments.map(item => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-bold text-slate-900">${item.name}</td>
+                    <td class="p-3"><span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">${item.job}</span></td>
+                    <td class="p-3 text-slate-600">${item.location || '-'}</td>
+                    <td class="p-3 text-slate-600">${item.time || '-'}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deleteAssignment('${item.id}')" class="text-rose-600 hover:text-rose-800 p-1.5 rounded hover:bg-rose-50" title="Delete">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        /* MANAGER FORM HANDLERS */
+        function setManagerInputTab(tab) {
+            const singleBtn = document.getElementById('tab-btn-single');
+            const bulkBtn = document.getElementById('tab-btn-bulk');
+            const singleForm = document.getElementById('single-add-form');
+            const bulkContainer = document.getElementById('bulk-add-container');
+
+            if (tab === 'single') {
+                singleBtn.className = "py-2 text-xs font-bold rounded-lg border bg-blue-600 text-white border-blue-600 shadow-sm";
+                bulkBtn.className = "py-2 text-xs font-bold rounded-lg border bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200";
+                singleForm.classList.remove('hidden');
+                bulkContainer.classList.add('hidden');
+            } else {
+                bulkBtn.className = "py-2 text-xs font-bold rounded-lg border bg-blue-600 text-white border-blue-600 shadow-sm";
+                singleBtn.className = "py-2 text-xs font-bold rounded-lg border bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200";
+                bulkContainer.classList.remove('hidden');
+                singleForm.classList.add('hidden');
+            }
+        }
+
+        function handleSingleAdd(e) {
+            e.preventDefault();
+            const newAssignment = {
+                id: 'job-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+                date: state.selectedDate,
+                name: document.getElementById('input-name').value.trim(),
+                job: document.getElementById('input-job').value.trim(),
+                location: document.getElementById('input-location').value.trim(),
+                time: document.getElementById('input-time').value.trim(),
+                supervisor: document.getElementById('input-supervisor').value.trim(),
+                notes: document.getElementById('input-notes').value.trim()
+            };
+
+            state.assignments.unshift(newAssignment);
+            saveData();
+            document.getElementById('single-add-form').reset();
+            render();
+            showToast('Assignment added successfully');
+        }
+
+        function handleBulkImport() {
+            const text = document.getElementById('bulk-text-area').value.trim();
+            if (!text) {
+                showToast('Please paste data first');
+                return;
+            }
+
+            const lines = text.split('\n');
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                // split by comma or tab
+                const parts = line.split(/,|\t/).map(p => p.trim());
+                if (parts.length >= 2) {
+                    state.assignments.unshift({
+                        id: 'bulk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+                        date: state.selectedDate,
+                        name: parts[0] || 'Unknown Worker',
+                        job: parts[1] || 'General Staff',
+                        location: parts[2] || 'Main Facility',
+                        time: parts[3] || '08:00 - 16:30',
+                        notes: parts[4] || ''
+                    });
+                    addedCount++;
+                }
+            });
+
+            saveData();
+            document.getElementById('bulk-text-area').value = '';
+            render();
+            showToast(`Imported ${addedCount} assignments`);
+        }
+
+        function loadSample100Data() {
+            const sampleText = 
+`David Vance (#116), Quality Checker, Lab B, 07:00 - 15:30, Calibration test
+Rachel Green (#117), Assembly Specialist, Line 1, 07:00 - 15:30, Safety glasses
+Kevin Bacon (#118), Yard Crane Operator, Dock 4, 06:00 - 14:00, High Vis Jacket
+Amanda Seyfried (#119), Stock Manager, Room A, 08:00 - 16:30, Audit duty
+Brian Cox (#120), Security Guard, Gate West, 07:00 - 19:00, ID Badge Check
+Siddharth Patel (#121), Line Worker, Line 3, 07:00 - 15:30, Standard glove
+Maria Garcia (#122), Forklift Driver, Warehouse C, 08:00 - 16:30, Inspect battery
+Luke Skywalker (#123), Maintenance Lead, Section 4, 08:00 - 16:30, Tool kit ready
+Jessica Alba (#124), Packer, Station 9, 07:00 - 15:30, Fragile goods
+Chris Hemsworth (#125), Heavy Loader, Bay 12, 06:00 - 14:30, Steel boots`;
+            
+            document.getElementById('bulk-text-area').value = sampleText;
+        }
+
+        function deleteAssignment(id) {
+            state.assignments = state.assignments.filter(a => a.id !== id);
+            saveData();
+            render();
+            showToast('Assignment removed');
+        }
+
+        function clearAllTodayAssignments() {
+            if (confirm(`Are you sure you want to delete ALL assignments for ${state.selectedDate}?`)) {
+                state.assignments = state.assignments.filter(a => a.date !== state.selectedDate);
+                saveData();
+                render();
+                showToast('Cleared all assignments for selected date');
+            }
+        }
+
+        /* UTILITIES & SHARING */
+        function sharePortalLink() {
+            const currentUrl = window.location.href.split('?')[0];
+            const textToCopy = `Today's Work Rota & Assignments (${state.selectedDate}):\n${currentUrl}`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy);
+            } else {
+                const el = document.createElement('textarea');
+                el.value = textToCopy;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+            }
+            showToast('Link copied! Share via WhatsApp or Email');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
